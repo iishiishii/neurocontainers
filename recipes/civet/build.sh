@@ -40,7 +40,7 @@ neurodocker generate ${neurodocker_buildMode} \
    --workdir /CIVET_Full_Project/Linux-x86_64                  \
    --run="rm -r SRC building man info"                                     \
    --run="chmod --recursive u+rX,g+rX,o+rX /CIVET_Full_Project"      \
-   --env PATH=$MNIBASEPATH/$CIVET:$MNIBASEPATH/$CIVET/progs:$MNIBASEPATH/bin:$PATH \
+   --env DEPLOY_PATH=$MNIBASEPATH/$CIVET:$MNIBASEPATH/$CIVET/progs:$MNIBASEPATH/bin:$PATH \
          LD_LIBRARY_PATH=$MNIBASEPATH/lib \
          MNI_DATAPATH=$MNIBASEPATH/share \
          PERL5LIB=$MNIBASEPATH/perl \
