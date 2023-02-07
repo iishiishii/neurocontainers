@@ -1,4 +1,4 @@
 using Pkg
-packages = ["ArgParse", "MriResearchTools"]
+packages = ["ArgParse", "MriResearchTools", "FFTW", "QSM"]
 Pkg.add(packages)
-using ArgParse
+Pkg.add(url="https://github.com/korbinian90/RomeoApp.jl")

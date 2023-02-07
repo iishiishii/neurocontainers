@@ -12,27 +12,28 @@ fi
 
 source ../main_setup.sh
 
-yes | pip uninstall neurodocker
-pip install --no-cache-dir https://github.com/NeuroDesk/neurodocker/tarball/update-fsl-to-6.0.5.1 --upgrade
-
 yes | neurodocker generate ${neurodocker_buildMode} \
-   --base-image ubuntu:16.04 \
+   --base-image ubuntu:18.04 \
    --pkg-manager apt \
    --run="printf '#!/bin/bash\nls -la' > /usr/bin/ll" \
    --run="chmod +x /usr/bin/ll" \
    --run="mkdir ${mountPointList}" \
+   --install git ca-certificates ltrace strace wget libxml2 gcc build-essential \
+   --install nvidia-cuda-toolkit \
    --${toolName} version=${toolVersion} \
+   --run="ln -s /opt/fsl-6.0.5.1/bin/eddy_cuda9.1 /opt/fsl-6.0.5.1/bin/eddy_cuda" \
    --env FSLOUTPUTTYPE=NIFTI_GZ \
+   --install locales \
+   --run="sed -i -e 's/# en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/' /etc/locale.gen && locale-gen" \
+   --env LANG=en_US.UTF-8 \
+   --env LANGUAGE=en_US:en \
+   --env LC_ALL=en_US.UTF-8 \
    --env DEPLOY_PATH=/opt/${toolName}-${toolVersion}/bin/ \
    --env DEPLOY_BINS=fsleyes:fsl \
+   --env PATH='$PATH':/usr/local/cuda-9.1/bin \
+   --env LD_LIBRARY_PATH='$LD_LIBRARY_PATH':/usr/local/cuda-9.1/lib64 \
    --copy README.md /README.md \
   > ${imageName}.${neurodocker_buildExt}
-
-   # --install ca-certificates wget python \
-   # --workdir /opt \
-   # --copy fslinstaller.py /opt \
-   # --run="wget https://fsl.fmrib.ox.ac.uk/fsldownloads/fslinstaller.py" \
-   # --run="opt/${toolName}-${toolVersion}/etc/fslconf/fslpython_install.sh" \
 
 if [ "$1" != "" ]; then
    ./../main_build.sh
