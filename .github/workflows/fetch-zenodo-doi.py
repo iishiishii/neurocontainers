@@ -26,7 +26,7 @@ def fetch_zenodo_dois(zenodo_token):
             "page": page,
             "size": 100,
         }
-        print(f"Fetching next page of packages from Github", response.links['next']['url'], params, page)
+        # print(f"Fetching next page of packages from Github", response.links['next']['url'], params, page)
         response=requests.get(url, params=params)
 
         if response.status_code != 200:

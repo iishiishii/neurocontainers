@@ -1,0 +1,42 @@
+name: generate-doi
+
+on:
+  workflow_run:
+    workflows: [Run Tests]
+    types:
+      - completed
+
+env:
+  ZENODO_ID: ${{ secrets.ZENODO_ID }}
+  ZENODO_TOKEN: ${{ secrets.ZENODO_TOKEN }}
+
+jobs:
+
+# check for updated apps list from build-apps.yml
+  check-for-updates:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check for updated apps list
+        id: check-updates
+        run: |
+          # Get the list of images from Github registry with all tags IMAGENAME_BUILDDATE
+          echo "Fetching apps list from GitHub registry..."
+          export IMAGENAME_BUILDDATE=($(python .github/workflows/fetch-gh-packages.py --git_token  | tr -d '[], '))
+          echo "imagename_builddate=${IMAGENAME_BUILDDATE}" >> $GITHUB_ENV
+
+          # Get the list of published images to Zenodo
+          echo "Fetching apps list from Zenodo..."
+          export ZENODO_PUBLISHED_IMAGE=($(python .github/workflows/fetch-zenodo-doi.py --zenodo_token   | tr -d '[], '))
+          echo "zenodo_published_image=${ZENODO_PUBLISHED_IMAGE}" >> $GITHUB_ENV
+          
+          # Compare the two lists
+          echo "Comparing apps list..."
+          IFS=$'\n' read -r -d '' -a NEW_IMAGE < <( comm -23 <(printf '%s\n' "${IMAGENAME_BUILDDATE[@]}" | sort) <(printf '%s\n' "${ZENODO_PUBLISHED_IMAGE[@]}" | sort) && printf '\0' )
+          echo "new_image=${NEW_IMAGE[@]}" >> $GITHUB_ENV
+
+          # Upload the new image list to Zenodo
+          echo "Uploading new image list to Zenodo..."
+
+
+          # Push app.json file to neurodesk.github.io repo
+          # Use the GitHub CLI to create a pull request

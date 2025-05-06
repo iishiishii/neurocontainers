@@ -5,12 +5,14 @@ def fetch_package_tags(git_token, package_name):
     """
     https://api.github.com/orgs/NeuroDesk/packages/container/romeo_3.2.4/versions
     """
+    encoded_package_name = "%2F".join(package_name.split("/"))
+
     headers = {
         "Accept": "application/vnd.github.v3+json",
         "Authorization": f"Bearer {git_token}",
         "X-GitHub-Api-Version": "2022-11-28"
     }
-    url = f"https://api.github.com/orgs/NeuroDesk/packages/container/{package_name}/versions"
+    url = f"https://api.github.com/orgs/NeuroDesk/packages/container/{encoded_package_name}/versions"
     response = requests.get(url, headers=headers)
     if response.status_code != 200:
         raise Exception(f"Failed to fetch package tags: {response.status_code} {response.text}")
@@ -55,7 +57,7 @@ def fetch_packages(git_token):
     if response.status_code != 200:
         raise Exception(f"Failed to fetch packages: {response.status_code} {response.text}")
     packages = response.json()
-    print(f"Fetched {len(packages)} packages from Github")
+    # print(f"Fetched {len(packages)} packages from Github")
 
     while 'next' in response.links:
         page += 1
@@ -65,7 +67,7 @@ def fetch_packages(git_token):
             "page": page,
             "visibility": "public"
         }
-        print(f"Fetching next page of packages from Github", response.links['next']['url'], params, page)
+        # print(f"Fetching next page of packages from Github", response.links['next']['url'], params, page)
         response=requests.get(url,headers=headers, params=params)
         # print(f"Fetched {len(response.json())} packages from Github", response.json())
         packages.extend(response.json())
@@ -73,19 +75,18 @@ def fetch_packages(git_token):
     # Split the package name and version
     app_list = []
     for package in packages:
-        package_name = "%2F".join(package['name'].split("/"))
-        package_tags = fetch_package_tags(git_token, package_name)
+        package_tags = fetch_package_tags(git_token, package['name'])
         app_list.extend(package_tags)
-    print(f"Found {len(app_list)} packages")
+    # print(f"Found {len(app_list)} packages")
     return app_list
 
-# def update_readme(packages):
-#     with open("./packages.txt", "w") as file:
-#         for i in range(len(packages)):
-#             # print(packages[i])
-#             new_content = packages[i] + "\n"
-#             file.write(new_content)
-#             file.truncate()
+def update_readme(packages):
+    with open("./packages.txt", "w") as file:
+        for i in range(len(packages)):
+            # print(packages[i])
+            new_content = packages[i] + "\n"
+            file.write(new_content)
+            file.truncate()
 
 
 if __name__ == '__main__':
@@ -96,4 +97,4 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     print(fetch_packages(args.git_token))
-    # update_readme(doi_url)
+    # update_readme(fetch_packages(args.git_token))
