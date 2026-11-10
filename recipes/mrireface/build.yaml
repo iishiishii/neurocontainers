@@ -2,8 +2,7 @@ name: mrireface
 version: 0.3.5
 
 copyright:
-  - license: LicenseRef-mri_reface
-    name: mri_reface Non-Commercial Research License
+  - name: mri_reface Non-Commercial Research License
     url: https://www.nitrc.org/projects/mri_reface/
 
 architectures:
