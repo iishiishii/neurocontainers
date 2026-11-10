@@ -82,6 +82,7 @@ build:
         - unzip {{ get_file("mcr_installer") }} -d /tmp/mcr_installer
         - /tmp/mcr_installer/install -destinationFolder /opt/matlab-runtime -agreeToLicense yes -mode silent -outputFile /tmp/mcr_install.log
         - rm -rf /tmp/mcr_installer /tmp/mcr_install.log
+        - rm -f /opt/matlab-runtime/v94/sys/os/glnxa64/libstdc++.so.6
 
     - workdir: /opt/mrireface-{{ context.version }}
 
