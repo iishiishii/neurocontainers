@@ -15,7 +15,7 @@ variables:
 
 auto_update:
   method: sources
-  container_version: mrireface
+  container_version: mri_reface
   sources:
     - id: mri_reface
       method: artifact_listing
