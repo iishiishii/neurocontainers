@@ -9,8 +9,8 @@ architectures:
   - x86_64
 
 variables:
-  matlab_release: R2018a
-  matlab_runtime_root: /opt/matlab-runtime/v94
+  matlab_release: R2022a
+  matlab_runtime_root: /opt/matlab-runtime/v912
   niftyreg_version: "2.1.2"
 
 auto_update:
@@ -82,7 +82,7 @@ build:
         - unzip {{ get_file("mcr_installer") }} -d /tmp/mcr_installer
         - /tmp/mcr_installer/install -destinationFolder /opt/matlab-runtime -agreeToLicense yes -mode silent -outputFile /tmp/mcr_install.log
         - rm -rf /tmp/mcr_installer /tmp/mcr_install.log
-        - rm -f /opt/matlab-runtime/v94/sys/os/glnxa64/libstdc++.so.6
+        - rm -f {{ context.matlab_runtime_root }}/sys/os/glnxa64/libstdc++.so.6
 
     - workdir: /opt/mrireface-{{ context.version }}
 
@@ -110,7 +110,7 @@ files:
   - name: archive
     url: https://object-store.rc.nectar.org.au/v1/AUTH_dead991e1fa847e3afcca2d3a7041f5d/build/mri_reface_0.3.5.zip
   - name: mcr_installer
-    url: https://ssd.mathworks.com/supportfiles/downloads/R2018a/deployment_files/R2018a/installers/glnxa64/MCR_R2018a_glnxa64_installer.zip
+    url: https://ssd.mathworks.com/supportfiles/downloads/R2022a/Release/9/deployment_files/installer/complete/glnxa64/MATLAB_Runtime_R2022a_Update_9_glnxa64.zip
 
 domains:
   - neuroimaging
@@ -135,7 +135,7 @@ readme: |
   ```
 
   Dependencies included:
-  - MATLAB Runtime {{ context.matlab_release }}
+  - MATLAB Runtime {{ context.matlab_release }} (v9.12)
   - ANTs 2.6.2
   - NiftyReg {{ context.niftyreg_version }}
 
