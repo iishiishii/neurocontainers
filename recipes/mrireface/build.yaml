@@ -1,0 +1,153 @@
+name: mrireface
+version: 0.3.5
+
+copyright:
+  - license: LicenseRef-mri_reface
+    name: mri_reface Non-Commercial Research License
+    url: https://www.nitrc.org/projects/mri_reface/
+
+architectures:
+  - x86_64
+
+variables:
+  matlab_release: R2024b
+  matlab_runtime_root: /opt/matlabruntime/R2024b
+  niftyreg_version: "2.1.2"
+
+auto_update:
+  method: sources
+  container_version: mrireface
+  sources:
+    - id: mri_reface
+      method: artifact_listing
+      url: https://object-store.rc.nectar.org.au/v1/AUTH_dead991e1fa847e3afcca2d3a7041f5d/build?format=json&prefix=mri_reface
+      version_regex: 'mri_reface_(?P<version>\d+\.\d+\.\d+)\.zip$'
+      download_base: https://object-store.rc.nectar.org.au/v1/AUTH_dead991e1fa847e3afcca2d3a7041f5d/build/
+      target:
+        file: archive
+    - id: niftyreg
+      dependency: true
+      method: github_tags
+      repo: KCL-BMEIS/niftyreg
+      version_regex: 'v(?P<version>\d+\.\d+\.\d+)'
+      target:
+        variable: niftyreg_version
+
+build:
+  kind: neurodocker
+  base-image: containers.mathworks.com/matlab-runtime:r2024b
+  pkg-manager: apt
+  add-default-template: false
+  add-tzdata: false
+
+  directives:
+    - environment:
+        DEBIAN_FRONTEND: noninteractive
+        AGREE_TO_MATLAB_RUNTIME_LICENSE: "yes"
+        MCRROOT: "{{ context.matlab_runtime_root }}"
+        MATLABCMD: "{{ context.matlab_runtime_root }}/toolbox/matlab"
+        XAPPLRESDIR: "{{ context.matlab_runtime_root }}/x11/app-defaults"
+        LD_LIBRARY_PATH: >-
+          {{ context.matlab_runtime_root }}/runtime/glnxa64:{{ context.matlab_runtime_root }}/bin/glnxa64:{{ context.matlab_runtime_root }}/sys/os/glnxa64:{{ context.matlab_runtime_root }}/sys/opengl/lib/glnxa64:{{ context.matlab_runtime_root }}/extern/bin/glnxa64
+
+    - install:
+        - unzip
+        - ca-certificates
+        - libgomp1
+        - libxt6
+        - libxext6
+        - libx11-6
+
+    - template:
+        name: ants
+        version: "2.6.2"
+
+    - install:
+        - git
+        - cmake
+        - make
+        - g++
+
+    - workdir: /opt/niftyreg-{{ context.niftyreg_version }}
+
+    - run:
+        - git clone --branch v{{ context.niftyreg_version }} --depth 1 https://github.com/KCL-BMEIS/niftyreg.git src
+        - cmake -S src -B build -D CMAKE_BUILD_TYPE=Release -D CMAKE_INSTALL_PREFIX=/opt/niftyreg-{{ context.niftyreg_version }}
+        - cmake --build build
+        - cmake --install build
+        - rm -rf src build
+
+    - environment:
+        PATH: /opt/niftyreg-{{ context.niftyreg_version }}/bin:${PATH}
+        TOOLBOX_PATH: /opt/niftyreg-{{ context.niftyreg_version }}/
+
+    - workdir: /opt/mri_reface-{{ context.version }}
+
+    - run:
+        - unzip {{ get_file("archive") }} -d /tmp/mri_reface_extract
+        - cp -a /tmp/mri_reface_extract/mri_reface_{{ context.version }}/. /opt/mri_reface-{{ context.version }}/
+        - rm -rf /tmp/mri_reface_extract
+        - chmod 0755 /opt/mri_reface-{{ context.version }}/run_mri_reface.sh
+
+    - copy:
+        - mri_reface_wrapper
+        - /usr/local/bin/mri_reface
+
+    - run:
+        - chmod 0755 /usr/local/bin/mri_reface
+
+deploy:
+  bins:
+    - mri_reface
+  path:
+    - /opt/niftyreg-{{ context.niftyreg_version }}/bin
+
+files:
+  - name: archive
+    url: https://object-store.rc.nectar.org.au/v1/AUTH_dead991e1fa847e3afcca2d3a7041f5d/build/mri_reface_0.3.5.zip
+  - name: mri_reface_wrapper
+    contents: |
+      #!/bin/bash
+      exec /opt/mri_reface-{{ context.version }}/run_mri_reface.sh "${MCRROOT}" "$@"
+
+domains:
+  - neuroimaging
+categories:
+  - structural imaging
+
+readme: |
+  ----------------------------------
+  ## mri_reface/{{ context.version }} ##
+
+  mri_reface replaces the facial region of head MRI, PET, and CT images with an
+  average face, preventing re-identification while preserving scan quality for
+  downstream analysis. Supported modalities: T1, T2, FLAIR, T2*, and ASL MRI;
+  amyloid, tau, and FDG PET; and CT.
+
+  This tool is provided for non-commercial research use only. See the license:
+  https://www.nitrc.org/projects/mri_reface/
+
+  Example:
+  ```
+  mri_reface -in input.nii.gz -out output.nii.gz -mode T1
+  ```
+
+  Dependencies included:
+  - MATLAB Runtime {{ context.matlab_release }}
+  - ANTs 2.6.2
+  - NiftyReg {{ context.niftyreg_version }}
+
+  More documentation: https://www.nitrc.org/projects/mri_reface/
+
+  Citation:
+  ```
+  Schwarz CG, et al. (2021). Identification of Anonymous MRI Research Participants
+  with Face-Recognition Software. N Engl J Med, 383(12), 1183-1184.
+  doi:10.1056/NEJMc2027436
+  ```
+
+  To run applications outside of this container: ml mri_reface/{{ context.version }}
+
+  ----------------------------------
+
+icon: data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAHhklEQVR4nO2ba2xURRTHf7vb3bbbB1CgtCDlUd4IgvIQUFAQFYiCLwQxhIiCIaKJxkRjjB98EB/xbUKMJr5ATFQ0RiOKURAVFBUVBBREQKAiUqC0lLbb3e1j/TC33e3eubvbbQEhO8nNnpkzZ+ac/8yZM3eKOI6jWuSzUAFWAZsBAUYC6cBQ4Ffge2CNUmq3UspIKW8E5gE1gAVkgAIgvwcfCmwDtgIlpdRBYB+wXym1GagGzpRSrwMH84B3gceBFcASYB2wHlgLvAEsBPYCGaXUHqXUXqXUm5b1b5IFkiRJkiRJkiRJkiRJkiRJkiT/Ex8A/jGKGrTOkgAAAABJRU5ErkJggg==
