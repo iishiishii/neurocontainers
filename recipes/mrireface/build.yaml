@@ -9,8 +9,8 @@ architectures:
   - x86_64
 
 variables:
-  matlab_release: R2024b
-  matlab_runtime_root: /opt/matlabruntime/R2024b
+  matlab_release: R2018a
+  matlab_runtime_root: /opt/matlab-runtime/v94
   niftyreg_version: "2.1.2"
 
 auto_update:
@@ -34,24 +34,25 @@ auto_update:
 
 build:
   kind: neurodocker
-  base-image: containers.mathworks.com/matlab-runtime:r2024b
+  base-image: ubuntu:22.04
   pkg-manager: apt
-  add-default-template: false
-  add-tzdata: false
 
   directives:
+    - run:
+        - printf 'Acquire::Retries "5";\nAcquire::http::Timeout "30";\n' > /etc/apt/apt.conf.d/80retries
+
+    # MATLAB LD_LIBRARY_PATH is deferred to the final environment directive to avoid
+    # conflicting with system curl/cmake during dependency builds.
     - environment:
         DEBIAN_FRONTEND: noninteractive
-        AGREE_TO_MATLAB_RUNTIME_LICENSE: "yes"
-        MCRROOT: "{{ context.matlab_runtime_root }}"
-        MATLABCMD: "{{ context.matlab_runtime_root }}/toolbox/matlab"
-        XAPPLRESDIR: "{{ context.matlab_runtime_root }}/x11/app-defaults"
-        LD_LIBRARY_PATH: >-
-          {{ context.matlab_runtime_root }}/runtime/glnxa64:{{ context.matlab_runtime_root }}/bin/glnxa64:{{ context.matlab_runtime_root }}/sys/os/glnxa64:{{ context.matlab_runtime_root }}/sys/opengl/lib/glnxa64:{{ context.matlab_runtime_root }}/extern/bin/glnxa64
+        LANG: en_US.UTF-8
+        LC_ALL: en_US.UTF-8
 
     - install:
-        - unzip
         - ca-certificates
+        - curl
+        - unzip
+        - xvfb
         - libgomp1
         - libxt6
         - libxext6
@@ -76,38 +77,39 @@ build:
         - cmake --install build
         - rm -rf src build
 
-    - environment:
-        PATH: /opt/niftyreg-{{ context.niftyreg_version }}/bin:${PATH}
-        TOOLBOX_PATH: /opt/niftyreg-{{ context.niftyreg_version }}/
+    - run:
+        - mkdir -p /opt/matlab-runtime
+        - unzip {{ get_file("mcr_installer") }} -d /tmp/mcr_installer
+        - /tmp/mcr_installer/install -destinationFolder /opt/matlab-runtime -agreeToLicense yes -mode silent -outputFile /tmp/mcr_install.log
+        - rm -rf /tmp/mcr_installer /tmp/mcr_install.log
 
-    - workdir: /opt/mri_reface-{{ context.version }}
+    - workdir: /opt/mrireface-{{ context.version }}
 
     - run:
         - unzip {{ get_file("archive") }} -d /tmp/mri_reface_extract
-        - cp -a /tmp/mri_reface_extract/mri_reface_{{ context.version }}/. /opt/mri_reface-{{ context.version }}/
+        - cp -a /tmp/mri_reface_extract/mri_reface_{{ context.version }}/. /opt/mrireface-{{ context.version }}/
         - rm -rf /tmp/mri_reface_extract
-        - chmod 0755 /opt/mri_reface-{{ context.version }}/run_mri_reface.sh
 
-    - copy:
-        - mri_reface_wrapper
-        - /usr/local/bin/mri_reface
-
-    - run:
-        - chmod 0755 /usr/local/bin/mri_reface
+    # Set MATLAB env vars last so LD_LIBRARY_PATH does not shadow system libcurl
+    # during ANTs download and NiftyReg compilation above.
+    - environment:
+        MCRROOT: "{{ context.matlab_runtime_root }}"
+        AGREE_TO_MATLAB_RUNTIME_LICENSE: "yes"
+        LD_LIBRARY_PATH: >-
+          {{ context.matlab_runtime_root }}:{{ context.matlab_runtime_root }}/runtime/glnxa64:{{ context.matlab_runtime_root }}/bin/glnxa64:{{ context.matlab_runtime_root }}/sys/os/glnxa64:{{ context.matlab_runtime_root }}/sys/opengl/lib/glnxa64:{{ context.matlab_runtime_root }}/extern/bin/glnxa64
+        PATH: /opt/mrireface-{{ context.version }}:/opt/niftyreg-{{ context.niftyreg_version }}/bin:${PATH}
+        TOOLBOX_PATH: /opt/niftyreg-{{ context.niftyreg_version }}/
 
 deploy:
-  bins:
-    - mri_reface
   path:
+    - /opt/mrireface-{{ context.version }}
     - /opt/niftyreg-{{ context.niftyreg_version }}/bin
 
 files:
   - name: archive
     url: https://object-store.rc.nectar.org.au/v1/AUTH_dead991e1fa847e3afcca2d3a7041f5d/build/mri_reface_0.3.5.zip
-  - name: mri_reface_wrapper
-    contents: |
-      #!/bin/bash
-      exec /opt/mri_reface-{{ context.version }}/run_mri_reface.sh "${MCRROOT}" "$@"
+  - name: mcr_installer
+    url: https://ssd.mathworks.com/supportfiles/downloads/R2018a/deployment_files/R2018a/installers/glnxa64/MCR_R2018a_glnxa64_installer.zip
 
 domains:
   - neuroimaging
@@ -116,7 +118,7 @@ categories:
 
 readme: |
   ----------------------------------
-  ## mri_reface/{{ context.version }} ##
+  ## mrireface/{{ context.version }} ##
 
   mri_reface replaces the facial region of head MRI, PET, and CT images with an
   average face, preventing re-identification while preserving scan quality for
@@ -145,7 +147,7 @@ readme: |
   doi:10.1056/NEJMc2027436
   ```
 
-  To run applications outside of this container: ml mri_reface/{{ context.version }}
+  To run applications outside of this container: ml mrireface/{{ context.version }}
 
   ----------------------------------
 
