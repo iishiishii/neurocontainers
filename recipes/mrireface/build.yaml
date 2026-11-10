@@ -87,7 +87,7 @@ build:
 
     - run:
         - unzip {{ get_file("archive") }} -d /tmp/mri_reface_extract
-        - cp -a /tmp/mri_reface_extract/mri_reface_{{ context.version }}/. /opt/mrireface-{{ context.version }}/
+        - cp -a /tmp/mri_reface_extract/mri_reface/. /opt/mrireface-{{ context.version }}/
         - rm -rf /tmp/mri_reface_extract
 
     # Set MATLAB env vars last so LD_LIBRARY_PATH does not shadow system libcurl
