@@ -1,0 +1,23 @@
+name: mrireface
+version: 0.3.5
+
+tests:
+  - name: mrireface executable available
+    description: Verify the mri_reface binary is on PATH.
+    command: command -v mri_reface
+    expected_output_contains: "mri_reface"
+
+  - name: ANTs available
+    description: Verify ANTs antsRegistration is installed.
+    command: command -v antsRegistration
+    expected_output_contains: "antsRegistration"
+
+  - name: NiftyReg available
+    description: Verify NiftyReg reg_aladin is installed.
+    command: command -v reg_aladin
+    expected_output_contains: "reg_aladin"
+
+  - name: MATLAB runtime root is valid
+    description: Verify the MATLAB Runtime R2018a glnxa64 directory exists.
+    command: test -d "${MCRROOT}/runtime/glnxa64" && echo "MCRROOT valid"
+    expected_output_contains: "MCRROOT valid"
