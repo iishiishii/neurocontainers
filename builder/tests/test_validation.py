@@ -118,6 +118,14 @@ def test_missing_or_duplicate_domains_fail_published_recipe_validation():
     recipe["domains"] = ["neuroimaging", "neuroimaging"]
     with pytest.raises(ValueError, match="unique lowercase domain IDs"):
         validate_recipe_dict(recipe)
+    recipe["domains"] = ["a" * 64]
+    validate_recipe_dict(recipe)
+    recipe["domains"] = ["a" * 65]
+    with pytest.raises(ValueError, match="at most 64 characters"):
+        validate_recipe_dict(recipe)
+    recipe["domains"] = ["a--b"]
+    with pytest.raises(ValueError, match="unique lowercase domain IDs"):
+        validate_recipe_dict(recipe)
 
 
 def test_valid_complex_recipe():

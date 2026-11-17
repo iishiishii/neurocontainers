@@ -175,10 +175,12 @@ def validate_recipe_metadata(recipe_dict: Dict[str, Any]) -> None:
         raise ValueError("domains is required and must be a non-empty list")
     if any(
         not isinstance(domain, str)
-        or not re.fullmatch(r"[a-z][a-z0-9]*(?:-[a-z0-9]+)*", domain)
+        or not re.fullmatch(r"[a-z](?:[a-z0-9]|-(?=[a-z0-9])){0,63}", domain)
         for domain in domains
     ) or len(set(domains)) != len(domains):
-        raise ValueError("domains must contain unique lowercase domain IDs")
+        raise ValueError(
+            "domains must contain unique lowercase domain IDs of at most 64 characters"
+        )
 
 
 def resolve_fulltest_version(config: Dict[str, Any]) -> str:

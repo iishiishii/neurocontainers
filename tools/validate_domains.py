@@ -14,7 +14,7 @@ import yaml
 DEFAULT_REGISTRY = (
     "https://raw.githubusercontent.com/scigetorg/apps.json/main/domains.json"
 )
-DOMAIN_ID = re.compile(r"[a-z][a-z0-9]*(?:-[a-z0-9]+)*\Z")
+DOMAIN_ID = re.compile(r"[a-z](?:[a-z0-9]|-(?=[a-z0-9])){0,63}\Z")
 
 
 def load_registry(location: str) -> dict:
@@ -45,9 +45,7 @@ def check_labels(
         if config is None:
             raise ValueError(f"{location}: unknown domain {label}")
         sources = config.get("source_repositories")
-        if not isinstance(sources, list) or repository.casefold() not in {
-            source.casefold() for source in sources if isinstance(source, str)
-        }:
+        if not isinstance(sources, list) or repository not in sources:
             raise ValueError(
                 f"{location}: {repository} is not in {label}.source_repositories"
             )
